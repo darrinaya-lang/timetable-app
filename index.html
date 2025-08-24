@@ -2,52 +2,97 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ライブタイムテーブル生成</title>
   <style>
-    body { font-family: sans-serif; padding: 20px; }
-    label { display: block; margin: 8px 0 4px; }
-    input { margin-bottom: 12px; }
-    button { margin-top: 10px; }
-    pre { background: #f4f4f4; padding: 10px; border-radius: 6px; white-space: pre-wrap; }
+    body {
+      font-family: sans-serif;
+      padding: 10px;
+      max-width: 480px;
+      margin: auto;
+    }
+    h1 { font-size: 20px; text-align: center; margin-bottom: 20px; }
+    fieldset {
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 10px;
+      margin-bottom: 15px;
+    }
+    legend {
+      font-weight: bold;
+      font-size: 14px;
+      padding: 0 5px;
+    }
+    label {
+      display: block;
+      margin: 8px 0 4px;
+      font-size: 14px;
+    }
+    input, button {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      margin-bottom: 10px;
+      box-sizing: border-box;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover { background: #0056b3; }
+    pre {
+      background: #f4f4f4;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 14px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
   </style>
 </head>
 <body>
-  <h1>ライブタイムテーブル生成ツール</h1>
+  <h1>ライブタイムテーブル生成</h1>
   
   <form id="form">
-    <label>Open時間（例: 18:00）</label>
-    <input type="time" id="openTime" value="18:00">
+    <fieldset>
+      <legend>▼ Open & Start</legend>
+      <label>Open</label>
+      <input type="time" id="openTime" value="18:00">
+      <label>Start</label>
+      <input type="time" id="startTime" value="18:30">
+      <label>リハ終了〜Open余白（分）</label>
+      <input type="number" id="gapBeforeOpen" value="30">
+    </fieldset>
 
-    <label>本番スタート時間（例: 18:30）</label>
-    <input type="time" id="startTime" value="18:30">
+    <fieldset>
+      <legend>▼ リハ設定</legend>
+      <label>リハ持ち時間（分）</label>
+      <input type="number" id="rehearsalDuration" value="20">
+      <label>リハ転換（分）</label>
+      <input type="number" id="rehearsalChange" value="15">
+      <label>リハ組数</label>
+      <input type="number" id="rehearsalCount" value="6">
+    </fieldset>
 
-    <label>リハ終了〜Openまでの余白（分）</label>
-    <input type="number" id="gapBeforeOpen" value="30">
-
-    <label>リハ持ち時間（分）</label>
-    <input type="number" id="rehearsalDuration" value="20">
-
-    <label>リハ転換（分）</label>
-    <input type="number" id="rehearsalChange" value="15">
-
-    <label>リハ組数</label>
-    <input type="number" id="rehearsalCount" value="6">
-
-    <label>本番持ち時間（分）</label>
-    <input type="number" id="liveDuration" value="20">
-
-    <label>本番転換（分）</label>
-    <input type="number" id="liveChange" value="15">
-
-    <label>本番組数</label>
-    <input type="number" id="liveCount" value="6">
+    <fieldset>
+      <legend>▼ 本番設定</legend>
+      <label>本番持ち時間（分）</label>
+      <input type="number" id="liveDuration" value="20">
+      <label>本番転換（分）</label>
+      <input type="number" id="liveChange" value="15">
+      <label>本番組数</label>
+      <input type="number" id="liveCount" value="6">
+    </fieldset>
 
     <button type="button" onclick="generate()">タイムテーブル生成</button>
+    <button type="button" onclick="copyResult()">コピーする</button>
   </form>
 
   <h2>結果</h2>
   <pre id="output"></pre>
-  <button type="button" onclick="copyResult()">コピーする</button>
 
   <script>
     function toMinutes(t) {
