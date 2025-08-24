@@ -96,14 +96,15 @@
       const liveDuration = Number(document.getElementById("liveDuration").value);
       const liveChange = Number(document.getElementById("liveChange").value);
       const liveCount = Number(document.getElementById("liveCount").value);
-      const performers = document.getElementById("performers").value.split("\n").map(s => s.trim()).filter(Boolean);
+      const performers = document.getElementById("performers").value
+        .split("\n").map(s => s.trim()).filter(Boolean);
 
       let output = "";
 
       // --- リハ（本番の逆順） ---
       let rehearsalBlocks = [];
       let end = openTime - gapBeforeOpen;
-      const rehearsalNames = performers.slice(0, rehearsalCount).reverse(); // ★逆順
+      const rehearsalNames = performers.slice(0, rehearsalCount).reverse(); // ★逆順にする
       for (let i = 0; i < rehearsalCount; i++) {
         const start = end - rehearsalDuration;
         const name = rehearsalNames[i] || "";
@@ -113,7 +114,6 @@
           end = start - rehearsalChange;
         }
       }
-      rehearsalBlocks.reverse(); // 早い時間から順に並べる
       output += "【リハーサル】\n" + rehearsalBlocks.join("\n") + "\n\n";
 
       // --- Open ---
