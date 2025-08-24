@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ライブタイムテーブル生成</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    label { display: block; margin: 8px 0 4px; }
+    input { margin-bottom: 12px; }
+    button { margin-top: 10px; }
+    pre { background: #f4f4f4; padding: 10px; border-radius: 6px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>ライブタイムテーブル生成ツール</h1>
+  
+  <form id="form">
+    <label>Open時間（例: 18:00）</label>
+    <input type="time" id="openTime" value="18:00">
+
+    <label>本番スタート時間（例: 18:30）</label>
+    <input type="time" id="startTime" value="18:30">
+
+    <label>リハ終了〜Openまでの余白（分）</label>
+    <input type="number" id="gapBeforeOpen" value="30">
+
+    <label>リハ持ち時間（分）</label>
+    <input type="number" id="rehearsalDuration" value="20">
+
+    <label>リハ転換（分）</label>
+    <input type="number" id="rehearsalChange" value="15">
+
+    <label>リハ組数</label>
+    <input type="number" id="rehearsalCount" value="6">
+
+    <label>本番持ち時間（分）</label>
+    <input type="number" id="liveDuration" value="20">
+
+    <label>本番転換（分）</label>
+    <input type="number" id="liveChange" value="15">
+
+    <label>本番組数</label>
+    <input type="number" id="liveCount" value="6">
+
+    <button type="button" onclick="generate()">タイムテーブル生成</button>
+  </form>
+
+  <h2>結果</h2>
+  <pre id="output"></pre>
+  <button type="button" onclick="copyResult()">コピーする</button>
+
+  <script>
+    function toMinutes(t) {
+      const [h, m] = t.split(":").map(Number);
+      return h * 60 + m;
+    }
+
+    function toTimeString(mins) {
+      const h = String(Math.floor(mins / 60)).padStart(2, "0");
+      const m = String(mins % 60).padStart(2, "0");
+      return `${h}:${m}`;
+    }
+
+    function generate() {
+      const openTime = toMinutes(document.getElementById("openTime").value);
+      const startTime = toMinutes(document.getElementById("startTime").value);
+      const gapBeforeOpen = Number(document.getElementById("gapBeforeOpen").value);
+      const rehearsalDuration = Number(document.getElementById("rehearsalDuration").value);
+      const rehearsalChange = Number(document.getElementById("rehearsalChange").value);
+      const rehearsalCount = Number(document.getElementById("rehearsalCount").value);
+      const liveDuration = Number(document.getElementById("liveDuration").value);
+      const liveChange = Number(document.getElementById("liveChange").value);
+      const liveCount = Number(document.getElementById("liveCount").value);
+
+      // --- リハ ---
+      let rehearsalBlocks = [];
+      let end = openTime - gapBeforeOpen; // リハ終了はOpenの◯分前
+      for (let i = rehearsalCount; i > 0; i--) {
+        const start = end - rehearsalDuration;
+        rehearsalBlocks.push(`${toTimeString(start)}-${toTimeString(end)}`);
+        if (i > 1) {
+          rehearsalBlocks.push(`転換${rehearsalChange}`);
+          end = start - rehearsalChange;
+        }
+      }
+      rehearsalBlocks.reverse();
+
+      let output = "【リハーサル】\n" + rehearsalBlocks.join("\n") + "\n\n";
+
+      // --- Open ---
+      output += `【Open】\n${toTimeString(openTime)} Open\n\n`;
+
+      // --- 本番 ---
+      output += "【本番】\n";
+      let current = startTime;
+      for (let i = 1; i <= liveCount; i++) {
+        const endTime = current + liveDuration;
+        output += `${toTimeString(current)}-${toTimeString(endTime)}\n`;
+        if (i < liveCount) {
+          current = endTime + liveChange;
+          output += `転換${liveChange}\n`;
+        }
+      }
+
+      document.getElementById("output").textContent = output;
+    }
+
+    function copyResult() {
+      const text = document.getElementById("output").textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        alert("コピーしました！");
+      }).catch(err => {
+        alert("コピーに失敗しました: " + err);
+      });
+    }
+  </script>
+</body>
+</html>
