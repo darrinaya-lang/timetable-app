@@ -5,51 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ライブタイムテーブル生成</title>
   <style>
-    body {
-      font-family: sans-serif;
-      padding: 10px;
-      max-width: 480px;
-      margin: auto;
-    }
+    body { font-family: sans-serif; padding: 10px; max-width: 480px; margin: auto; }
     h1 { font-size: 20px; text-align: center; margin-bottom: 20px; }
     fieldset {
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      padding: 10px;
-      margin-bottom: 15px;
+      border: 1px solid #ccc; border-radius: 6px; padding: 10px; margin-bottom: 15px;
     }
-    legend {
-      font-weight: bold;
-      font-size: 14px;
-      padding: 0 5px;
+    legend { font-weight: bold; font-size: 14px; padding: 0 5px; }
+    label { display: block; margin: 8px 0 4px; font-size: 14px; }
+    input, textarea, button {
+      width: 100%; padding: 12px; font-size: 16px;
+      margin-bottom: 10px; box-sizing: border-box;
     }
-    label {
-      display: block;
-      margin: 8px 0 4px;
-      font-size: 14px;
-    }
-    input, button {
-      width: 100%;
-      padding: 12px;
-      font-size: 16px;
-      margin-bottom: 10px;
-      box-sizing: border-box;
-    }
+    textarea { height: 120px; }
     button {
-      background: #007bff;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
+      background: #007bff; color: white; border: none;
+      border-radius: 6px; cursor: pointer;
     }
     button:hover { background: #0056b3; }
     pre {
-      background: #f4f4f4;
-      padding: 10px;
-      border-radius: 6px;
-      font-size: 14px;
-      line-height: 1.5;
-      white-space: pre-wrap;
+      background: #f4f4f4; padding: 10px; border-radius: 6px;
+      font-size: 14px; line-height: 1.5; white-space: pre-wrap;
     }
   </style>
 </head>
@@ -87,6 +62,12 @@
       <input type="number" id="liveCount" value="6">
     </fieldset>
 
+    <fieldset>
+      <legend>▼ 出演者</legend>
+      <label>出演者名（本番順に1行ずつ）</label>
+      <textarea id="performers" placeholder="Aバンド&#10;Bバンド&#10;Cバンド"></textarea>
+    </fieldset>
+
     <button type="button" onclick="generate()">タイムテーブル生成</button>
     <button type="button" onclick="copyResult()">コピーする</button>
   </form>
@@ -99,7 +80,6 @@
       const [h, m] = t.split(":").map(Number);
       return h * 60 + m;
     }
-
     function toTimeString(mins) {
       const h = String(Math.floor(mins / 60)).padStart(2, "0");
       const m = String(mins % 60).padStart(2, "0");
@@ -116,32 +96,37 @@
       const liveDuration = Number(document.getElementById("liveDuration").value);
       const liveChange = Number(document.getElementById("liveChange").value);
       const liveCount = Number(document.getElementById("liveCount").value);
+      const performers = document.getElementById("performers").value.split("\n").map(s => s.trim()).filter(Boolean);
 
-      // --- リハ ---
+      let output = "";
+
+      // --- リハ（本番の逆順） ---
       let rehearsalBlocks = [];
-      let end = openTime - gapBeforeOpen; // リハ終了はOpenの◯分前
-      for (let i = rehearsalCount; i > 0; i--) {
+      let end = openTime - gapBeforeOpen;
+      const rehearsalNames = performers.slice(0, rehearsalCount).reverse(); // ★逆順
+      for (let i = 0; i < rehearsalCount; i++) {
         const start = end - rehearsalDuration;
-        rehearsalBlocks.push(`${toTimeString(start)}-${toTimeString(end)}`);
-        if (i > 1) {
+        const name = rehearsalNames[i] || "";
+        rehearsalBlocks.push(`${toTimeString(start)}-${toTimeString(end)} ${name}`);
+        if (i < rehearsalCount - 1) {
           rehearsalBlocks.push(`転換${rehearsalChange}`);
           end = start - rehearsalChange;
         }
       }
-      rehearsalBlocks.reverse();
-
-      let output = "【リハーサル】\n" + rehearsalBlocks.join("\n") + "\n\n";
+      rehearsalBlocks.reverse(); // 早い時間から順に並べる
+      output += "【リハーサル】\n" + rehearsalBlocks.join("\n") + "\n\n";
 
       // --- Open ---
       output += `【Open】\n${toTimeString(openTime)} Open\n\n`;
 
-      // --- 本番 ---
+      // --- 本番（入力順） ---
       output += "【本番】\n";
       let current = startTime;
-      for (let i = 1; i <= liveCount; i++) {
+      for (let i = 0; i < liveCount; i++) {
         const endTime = current + liveDuration;
-        output += `${toTimeString(current)}-${toTimeString(endTime)}\n`;
-        if (i < liveCount) {
+        const name = performers[i] || "";
+        output += `${toTimeString(current)}-${toTimeString(endTime)} ${name}\n`;
+        if (i < liveCount - 1) {
           current = endTime + liveChange;
           output += `転換${liveChange}\n`;
         }
