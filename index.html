@@ -7,30 +7,19 @@
   <style>
     body { font-family: sans-serif; padding: 10px; max-width: 480px; margin: auto; }
     h1 { font-size: 20px; text-align: center; margin-bottom: 20px; }
-    fieldset {
-      border: 1px solid #ccc; border-radius: 6px; padding: 10px; margin-bottom: 15px;
-    }
+    fieldset { border: 1px solid #ccc; border-radius: 6px; padding: 10px; margin-bottom: 15px; }
     legend { font-weight: bold; font-size: 14px; padding: 0 5px; }
     label { display: block; margin: 8px 0 4px; font-size: 14px; }
-    input, textarea, button {
-      width: 100%; padding: 12px; font-size: 16px;
-      margin-bottom: 10px; box-sizing: border-box;
-    }
+    input, textarea, button { width: 100%; padding: 12px; font-size: 16px; margin-bottom: 10px; box-sizing: border-box; }
     textarea { height: 120px; }
-    button {
-      background: #007bff; color: white; border: none;
-      border-radius: 6px; cursor: pointer;
-    }
+    button { background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; }
     button:hover { background: #0056b3; }
-    pre {
-      background: #f4f4f4; padding: 10px; border-radius: 6px;
-      font-size: 14px; line-height: 1.5; white-space: pre-wrap;
-    }
+    pre { background: #f4f4f4; padding: 10px; border-radius: 6px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
   </style>
 </head>
 <body>
   <h1>ライブタイムテーブル生成</h1>
-  
+
   <form id="form">
     <fieldset>
       <legend>▼ Open & Start</legend>
@@ -64,8 +53,8 @@
 
     <fieldset>
       <legend>▼ 出演者</legend>
-      <label>出演者名（本番順に1行ずつ）</label>
-      <textarea id="performers" placeholder="Aバンド&#10;Bバンド&#10;Cバンド"></textarea>
+      <label>出演者名（<b>本番順</b>に1行ずつ）</label>
+      <textarea id="performers" placeholder="（例）&#10;Aバンド&#10;Bバンド&#10;Cバンド"></textarea>
     </fieldset>
 
     <button type="button" onclick="generate()">タイムテーブル生成</button>
@@ -76,58 +65,58 @@
   <pre id="output"></pre>
 
   <script>
-    function toMinutes(t) {
-      const [h, m] = t.split(":").map(Number);
-      return h * 60 + m;
-    }
-    function toTimeString(mins) {
-      const h = String(Math.floor(mins / 60)).padStart(2, "0");
-      const m = String(mins % 60).padStart(2, "0");
-      return `${h}:${m}`;
-    }
+    function toMinutes(t){ const [h,m]=t.split(":").map(Number); return h*60+m; }
+    function toTimeString(mins){ const h=String(Math.floor(mins/60)).padStart(2,"0"); const m=String(mins%60).padStart(2,"0"); return `${h}:${m}`; }
 
-    function generate() {
+    function generate(){
       const openTime = toMinutes(document.getElementById("openTime").value);
       const startTime = toMinutes(document.getElementById("startTime").value);
-      const gapBeforeOpen = Number(document.getElementById("gapBeforeOpen").value);
-      const rehearsalDuration = Number(document.getElementById("rehearsalDuration").value);
-      const rehearsalChange = Number(document.getElementById("rehearsalChange").value);
-      const rehearsalCount = Number(document.getElementById("rehearsalCount").value);
-      const liveDuration = Number(document.getElementById("liveDuration").value);
-      const liveChange = Number(document.getElementById("liveChange").value);
-      const liveCount = Number(document.getElementById("liveCount").value);
-      const performers = document.getElementById("performers").value
-        .split("\n").map(s => s.trim()).filter(Boolean);
+      const gapBeforeOpen = Number(document.getElementById("gapBeforeOpen").value||0);
+      const rehearsalDuration = Number(document.getElementById("rehearsalDuration").value||0);
+      const rehearsalChange = Number(document.getElementById("rehearsalChange").value||0);
+      const rehearsalCount = Number(document.getElementById("rehearsalCount").value||0);
+      const liveDuration = Number(document.getElementById("liveDuration").value||0);
+      const liveChange = Number(document.getElementById("liveChange").value||0);
+      const liveCount = Number(document.getElementById("liveCount").value||0);
+      const performers = document.getElementById("performers").value.split("\n").map(s=>s.trim()).filter(Boolean);
 
       let output = "";
 
-      // --- リハ（本番の逆順） ---
-      let rehearsalBlocks = [];
+      // --- リハ：時間は昇順、名前は「本番順の逆」 ---
+      // 1) 時間枠を Open-余白 から逆算で作成 → 昇順に並べる
+      let slotTimes = [];
       let end = openTime - gapBeforeOpen;
-      const rehearsalNames = performers.slice(0, rehearsalCount).reverse(); // ★逆順にする
-      for (let i = 0; i < rehearsalCount; i++) {
+      for(let i=0;i<rehearsalCount;i++){
         const start = end - rehearsalDuration;
-        const name = rehearsalNames[i] || "";
-        rehearsalBlocks.push(`${toTimeString(start)}-${toTimeString(end)} ${name}`);
-        if (i < rehearsalCount - 1) {
-          rehearsalBlocks.push(`転換${rehearsalChange}`);
-          end = start - rehearsalChange;
-        }
+        // 先頭に積むことで結果が昇順になる
+        slotTimes.unshift([start,end]);
+        if(i < rehearsalCount-1){ end = start - rehearsalChange; }
       }
-      output += "【リハーサル】\n" + rehearsalBlocks.join("\n") + "\n\n";
+      // 2) 本番順リストを逆順にしてリハに割り当て
+      const rehearsalNames = performers.slice(0, rehearsalCount).slice().reverse();
+
+      output += "【リハーサル】\n";
+      for(let i=0;i<slotTimes.length;i++){
+        const [s,e] = slotTimes[i];
+        const name = rehearsalNames[i] || "";
+        output += `${toTimeString(s)}-${toTimeString(e)} ${name}\n`;
+        if(i < slotTimes.length-1) output += `転換${rehearsalChange}\n`;
+      }
+      output += "\n";
 
       // --- Open ---
       output += `【Open】\n${toTimeString(openTime)} Open\n\n`;
 
-      // --- 本番（入力順） ---
+      // --- 本番：時間は昇順、名前は入力（本番順）のまま ---
+      const liveNames = performers.slice(0, liveCount);
       output += "【本番】\n";
-      let current = startTime;
-      for (let i = 0; i < liveCount; i++) {
-        const endTime = current + liveDuration;
-        const name = performers[i] || "";
-        output += `${toTimeString(current)}-${toTimeString(endTime)} ${name}\n`;
-        if (i < liveCount - 1) {
-          current = endTime + liveChange;
+      let cur = startTime;
+      for(let i=0;i<liveCount;i++){
+        const endT = cur + liveDuration;
+        const name = liveNames[i] || "";
+        output += `${toTimeString(cur)}-${toTimeString(endT)} ${name}\n`;
+        if(i < liveCount-1){
+          cur = endT + liveChange;
           output += `転換${liveChange}\n`;
         }
       }
@@ -135,13 +124,10 @@
       document.getElementById("output").textContent = output;
     }
 
-    function copyResult() {
+    function copyResult(){
       const text = document.getElementById("output").textContent;
-      navigator.clipboard.writeText(text).then(() => {
-        alert("コピーしました！");
-      }).catch(err => {
-        alert("コピーに失敗しました: " + err);
-      });
+      navigator.clipboard.writeText(text).then(()=>alert("コピーしました！"))
+        .catch(err=>alert("コピーに失敗しました: "+err));
     }
   </script>
 </body>
